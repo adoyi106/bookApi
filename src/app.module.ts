@@ -43,6 +43,9 @@ import { AuthService } from './auth/auth.service';
         database:configService.get<string>('DATABASE_NAME'),
 
         entities:[Book, User],
+         ssl: {
+      rejectUnauthorized: false,
+    },
         synchronize: configService.get<boolean>('DATABASE_SYNCHRONIZES'),
       })
     }),
