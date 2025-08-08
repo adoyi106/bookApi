@@ -54,7 +54,7 @@ jobs:
                key: ${{ secrets.EC2_PRIVATE_KEY }}
                source: "dist,package.json,package-lock.json"
                target: ${{ env.DEPLOY_PATH }}
-               strip_components: 0
+               strip_components: 1
                overwrite: true
 
            - name: Upload environment variables
