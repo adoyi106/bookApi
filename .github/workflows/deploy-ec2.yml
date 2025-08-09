@@ -25,10 +25,16 @@ jobs:
       - name: SSH into EC2 and deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            cd ~/nestjs-app
-            docker compose down
-            docker compose up -d --build
+         host: ${{ secrets.EC2_HOST }}
+         username: ${{ secrets.EC2_USERNAME }}
+         key: ${{ secrets.EC2_PRIVATE_KEY }}
+         script: |
+           sudo apt-get update
+           sudo apt-get install -y docker.io
+           sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 \
+           -o /usr/local/bin/docker-compose
+           sudo chmod +x /usr/local/bin/docker-compose
+
+           cd ~/nestjs-app
+           docker-compose down || true
+           docker-compose up -d --build
