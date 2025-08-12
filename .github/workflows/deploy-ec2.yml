@@ -1,50 +1,63 @@
-name: Deploy NestJS to EC2 with Docker
+
+
+name: Book-Api CI/CD
 
 on:
   push:
     branches:
       - main
+      
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  ECR_REPOSITORY: bookapi-repo
+  AWS_ACCOUNT_ID: 020147456763
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@master
+        uses: actions/checkout@v4
+        
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "."
-          target: "~/nestjs-app"
-
+          node-version: '20'
+          cache: 'npm'
           
-      - name: Create .env file on EC2
-        uses: appleboy/ssh-action@master
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set default.region $AWS_DEFAULT_REGION
+          
+      - name: Login to ECR and Build/Push
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com
+          docker build -t ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest .
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "${{ secrets.ENV_FILE }}" > /home/ubuntu/nestjs-app/.env
-
-      - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@master
-        with:
-         host: ${{ secrets.EC2_HOST }}
-         username: ${{ secrets.EC2_USERNAME }}
-         key: ${{ secrets.EC2_PRIVATE_KEY }}
-         script: |
-           sudo apt-get update
-           sudo apt-get install -y docker.io
-           sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 \
-           -o /usr/local/bin/docker-compose
-           sudo chmod +x /usr/local/bin/docker-compose
-
-           cd ~/nestjs-app
-           docker-compose down || true
-           docker-compose up -d --build
+            cd /home/ubuntu/lms
+            aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com
+            docker pull ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+            docker-compose up -d
+            echo "Book-Api deployment completed successfully"
+            

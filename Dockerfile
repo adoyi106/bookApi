@@ -1,22 +1,14 @@
-#Build stage
-FROM node:20 AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-
-COPY . .
-RUN npm ci
-
-RUN npm run build 
-
-# Production stage
+# Use Node.js v20 base image
 FROM node:20
+# Set the working directory inside the container
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copy compiled app from build stage
-COPY --from=builder /app/dist ./dist
-
-CMD ["node", "dist/main.js"]
+# Copy project files into the container
+COPY . /app/
+# Install dependencies
+RUN npm install
+# Build the project
+RUN npm run build
+# Expose the port your app runs on
+EXPOSE 3000
+# Start the app
+CMD ["node", "dist/main"]
