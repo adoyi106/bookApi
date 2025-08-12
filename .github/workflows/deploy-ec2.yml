@@ -9,9 +9,9 @@ on:
       
 
 env:
-  AWS_DEFAULT_REGION: eu-west-2
-  ECR_REPOSITORY: bookapi-repo
-  AWS_ACCOUNT_ID: 020147456763
+  AWS_DEFAULT_REGION: "eu-west-2"
+  ECR_REPOSITORY: "bookapi-repo"
+  AWS_ACCOUNT_ID: "020147456763"
 
 jobs:
   build-and-deploy:
@@ -36,7 +36,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-west-2
+          AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
         run: |
           aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
